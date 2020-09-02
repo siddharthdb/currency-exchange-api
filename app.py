@@ -6,6 +6,7 @@ from datetime import datetime
 from xml.etree import ElementTree
 from sanic import Sanic
 from sanic.response import json
+from bson.json_util import dumps, loads
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -95,10 +96,14 @@ async def fxrates(request, fxdate=None):
             {"date": dt.strftime("%Y-%m-%d")}, {"_id": 0, "date": 1, "rates": 1}
         )        
     else:
-        fx_rate = fxRates.find_one({}, {"_id": 0, "date": 1, "rates": 1})
-        
+        latestRate = fxRates.find({}, {"_id": 0, "date": 1, "rates": 1}).sort('date', -1).limit(1)
+        dumpJson = dumps(latestRate)
+        fx_rate = loads(dumpJson[1:len(dumpJson) - 1])
+
     if baseCurrency == "EUR":
-        return json({ "base": baseCurrency, "date": fx_rate["date"], "rates": fx_rate["rates"] })
+        rates = fx_rate["rates"]
+        rates["EUR"] = round(1, 4)
+        return json({ "base": baseCurrency, "date": fx_rate["date"], "rates": rates})
     
     if fx_rate:                        
         rates = fx_rate['rates']
