@@ -20,17 +20,10 @@ Get historical rates for 4 Jan 1999.
 GET /2020-08-26
 ```
 
-## Comming Soon
 Rates are quoted against the Euro by default. Quote against a different currency by setting the base parameter in your request.
 
 ```http
 GET /latest?base=USD
-```
-
-Request specific exchange rates by setting the symbols parameter.
-
-```http
-GET /latest?symbols=USD,GBP
 ```
 
 Get exchange rate using a different base currency
