@@ -11,6 +11,7 @@ from bson.json_util import dumps, loads
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 app = Sanic("Currency Exchange API")
+refreshDates = []
 
 # Base Currency is EUR from European Central Bank
 baseCurrency = "EUR"
@@ -41,6 +42,7 @@ async def update_rates():
     data = envelope.findall("./eurofxref:Cube/eurofxref:Cube[@time]", namespaces)
     for d in data:
         date = d.attrib["time"]
+        refreshDates.append(date)
         # Insert record for the date not found in date list
         if not date in datecoll:
             rates = {
@@ -59,7 +61,7 @@ async def initialize_scheduler(app, loop):
     try:
         scheduler = AsyncIOScheduler()
         scheduler.start()
-        scheduler.add_job(update_rates, "interval", hours=12)
+        scheduler.add_job(update_rates, "interval", minutes=20)
     except BlockingIOError:
         pass
 
@@ -67,7 +69,6 @@ async def initialize_scheduler(app, loop):
 @app.route("/")
 async def index(request):
     return json({"message": "Welcome of FX Rate API."})
-
 
 @app.route("/latest", methods=["GET"])
 @app.route("/<fxdate>", methods=["GET"])
@@ -126,6 +127,10 @@ async def fxrates(request, fxdate=None):
             status=400,
         )
 
+@app.route("/refresh", methods=["GET"])
+async def refreshRates(request):
+    await update_rates()
+    return json(refreshDates)
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
