@@ -5,12 +5,16 @@ import os
 from datetime import datetime
 from xml.etree import ElementTree
 from sanic import Sanic
+from sanic_cors import CORS, cross_origin
 from sanic.response import json
 from bson.json_util import dumps, loads
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 app = Sanic("Currency Exchange API")
+CORS(app)
+
+# Dates for which data is unavailable in DB
 refreshDates = []
 
 # Base Currency is EUR from European Central Bank

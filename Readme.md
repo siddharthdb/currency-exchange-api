@@ -14,7 +14,7 @@ Get the latest foreign exchange rates.
 GET /latest
 ```
 
-Get historical rates for 4 Jan 1999.
+Get historical rates other than latest..
 
 ```http
 GET /2020-08-26

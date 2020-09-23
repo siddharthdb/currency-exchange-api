@@ -12,6 +12,7 @@ dnspython = "*"
 sanic = "*"
 apscheduler = "*"
 pymongo = "*"
+sanic-cors = "*"
 
 [requires]
 python_version = "3.8"
