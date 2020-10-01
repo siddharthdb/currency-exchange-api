@@ -124,7 +124,7 @@ async def fxrates(request, fxdate=None):
                 }
                 rates["EUR"] = round(1 / base_rate, 4)
 
-                return json({"base": baseCurrency, "date": str(fx_rate["date"]), "fxrates": rates})
+                return json({"base": baseCurrency, "date": str(fx_rate["date"]), "rates": rates})
             else:
                 return json(
                     {"error": "Base '{}' is not supported.".format(baseCurrency)}, status=400
@@ -165,7 +165,7 @@ async def fxrates(request):
                     }
                     rates["EUR"] = round(1 / base_rate, 4)
 
-                    return json({"base": baseCurrency, "date": str(fx_rate["date"]), "fxrates": rates})
+                    return json({"base": baseCurrency, "date": str(fx_rate["date"]), "rates": rates})
                 else:
                     return json(
                         {"error": "Base '{}' is not supported.".format(baseCurrency)}, status=400
@@ -176,7 +176,7 @@ async def fxrates(request):
 @app.route("/refresh", methods=["GET"])
 async def refreshRates(request):
     await update_rates()
-    return json(refreshDates)
+    return json({ "message": success })
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
