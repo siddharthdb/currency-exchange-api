@@ -12,8 +12,6 @@ from bson.json_util import dumps, loads
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from fxrates import FxRates
-
 app = Sanic("Currency Exchange API")
 CORS(app)
 
