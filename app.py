@@ -2,6 +2,7 @@ import pymongo
 import requests
 import os
 
+from bson import json_util
 from datetime import datetime
 from xml.etree import ElementTree
 from sanic import Sanic
@@ -10,6 +11,8 @@ from sanic.response import json
 from bson.json_util import dumps, loads
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+
+from fxrates import FxRates
 
 app = Sanic("Currency Exchange API")
 CORS(app)
@@ -29,7 +32,6 @@ namespaces = {
     "gesmes": "http://www.gesmes.org/xml/2002-08-01",
     "eurofxref": "http://www.ecb.int/vocabulary/2002-08-01/eurofxref",
 }
-
 
 async def update_rates():
     """
@@ -62,7 +64,6 @@ async def update_rates():
 
     print("End FX Rate Updates...")
 
-
 @app.listener("before_server_start")
 async def initialize_scheduler(app, loop):
     try:
@@ -71,7 +72,6 @@ async def initialize_scheduler(app, loop):
         scheduler.add_job(update_rates, "interval", minutes=30)
     except BlockingIOError:
         pass
-
 
 @app.route("/")
 async def index(request):
@@ -146,37 +146,39 @@ async def fxrates(request):
         end = datetime.strptime(request.args["end"][0], "%Y-%m-%d")
         
         print(start, end)
-        dbresult = fxRates.find({ "date": end }, {"_id": 0, "date": 1, "rates": 1})
+        dbresult = fxRates.find({ "date": { '$lte': end, '$gte': start } }, {"_id": 0, "date": 1, "rates": 1})
         
-        dumpJson = dumps(dbresult)
-        fx_rate = loads(dumpJson[1:len(dumpJson) - 1])
-        if fx_rate:
-            if baseCurrency == "EUR":    
-                rates = fx_rate["rates"]
-                rates["EUR"] = round(1, 4)
-                return json({ "base": baseCurrency, "date": str(fx_rate["date"]), "rates": rates})
-            else:
-                rates = fx_rate['rates']
-                
-                if baseCurrency in rates:
+        dumpJson = dumps(dbresult)                
+        fx_rate = loads(dumpJson[0:len(dumpJson)])
+        histRates = []
+
+        if fx_rate:            
+            for fx in fx_rate:      
+                rates = fx["rates"]  
+                if baseCurrency == "EUR":                    
+                    rates["EUR"] = round(1, 4)
+                else:
                     base_rate = round(rates[baseCurrency], 4)
                     rates = {
                         currency: round(rate / base_rate, 4) for currency, rate in rates.items()
                     }
                     rates["EUR"] = round(1 / base_rate, 4)
+                    
+                histRates.append({
+                    "date": fx["date"].isoformat(),
+                    "rates" : rates
+                })
 
-                    return json({"base": baseCurrency, "date": str(fx_rate["date"]), "rates": rates})
-                else:
-                    return json(
-                        {"error": "Base '{}' is not supported.".format(baseCurrency)}, status=400
-                    )
+            return json({ "base": baseCurrency, "fxrates": histRates})
+           
+        return json({"error": "No Data found between {} and {} ".format(start, end)}, status=404)
     else:
-        return json({"error": "Missing input args of start and end"}, status=400)
+        return json({"error": "Missing input args of start date and end date"}, status=400)
 
 @app.route("/refresh", methods=["GET"])
 async def refreshRates(request):
     await update_rates()
-    return json({ "message": success })
+    return json({ "message": "success" })
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
